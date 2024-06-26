@@ -56,64 +56,116 @@ const createUser = async (req, res) => {
 
     } catch (error) {
         console.log(error);
-        res.status(500).json("Server Error")
+        res.status(500).json("Server create Error")
     }
 
 
 }
+// const loginUser = async (req, res) => {
+//     //step 1: check incoming data
+//     console.log(req.body)
+//     // step 2 : validation
+//     const { email, password } = req.body;
+//     if (!email || !password) {
+//         return res.json({
+//             success: false,
+//             message: "Please enter all fields."
+//         })
+//     }
+//     //try catch block
+//     try {
+//         //finding user
+//         const user = await Users.findOne({ email: email })
+//         if (!user) {
+//             return res.json({
+//                 success: fasle,
+//                 message: "User does not exists"
+//             })
+//         }
+//         //comparing password
+//         const databasePassword = user.password;
+//         const isMatched = await bcrypt.compare(password, databasePassword)
+//         if (!isMatched) {
+//             return res.json({
+//                 success: fasle,
+//                 message: "Invalid credentials"
+//             })
+//         }
+//         //creating token
+//         const token = await jwt.sign(
+//             { id: user._id, isAdmin: user.isAdmin },
+//             process.env.JWT_SECRET
+//         )
+
+//         //response
+//         res.status(200).json({
+//             success: true,
+//             message: "User Logged in Successfully.",
+//             token: token,
+//             userData: user
+//         })
+
+//     }
+//     catch (error) {
+//         return res.json({
+//             success: false,
+//             message: "Servor login Error",
+//             error: error
+//         })
+//     }
+// }
 const loginUser = async (req, res) => {
-    //step 1: check incoming data
-    console.log(req.body)
-    // step 2 : validation
+    console.log(req.body);
+
     const { email, password } = req.body;
+
     if (!email || !password) {
-        return res.json({
+        return res.status(400).json({
             success: false,
             message: "Please enter all fields."
-        })
+        });
     }
-    //try catch block
-    try {
-        //finding user
-        const user = await Users.findOne({ email: email })
-        if (!user) {
-            return res.json({
-                success: fasle,
-                message: "User does not exists"
-            })
-        }
-        //comparing password
-        const databasePassword = user.password;
-        const isMatched = await bcrypt.compare(password, databasePassword)
-        if (!isMatched) {
-            return res.json({
-                success: fasle,
-                message: "Invalid credentials"
-            })
-        }
-        //creating token
-        const token = await jwt.sign(
-            { id: user._id, isAdmin: user.isAdmin },
-            process.env.JWT_SECRET
-        )
 
-        //response
+    try {
+        const user = await Users.findOne({ email });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User does not exist."
+            });
+        }
+
+        const isMatched = await bcrypt.compare(password, user.password);
+        if (!isMatched) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid credentials."
+            });
+        }
+
+        const token = jwt.sign(
+            { id: user._id, isAdmin: user.isAdmin },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+
         res.status(200).json({
             success: true,
-            message: "User Logged in Successfully.",
-            token: token,
+            message: "User logged in successfully.",
+            token,
             userData: user
-        })
+        });
 
-    }
-    catch (error) {
-        return res.json({
+    } catch (error) {
+        console.error("Error during login:", error); // Log the error details on the server side
+        res.status(500).json({
             success: false,
-            message: "Servor Error",
-            error: error
-        })
+            message: "Server login error.",
+            error: error.message // Include the error message in the response
+        });
     }
-}
+};
+
 const getSingleUser = async (req, res) => {
     const userId = req.user.id;
     try {
@@ -139,7 +191,7 @@ const getSingleUser = async (req, res) => {
         console.error(error);
         return res.status(500).json({
             success: false,
-            message: "Server Error: " + error
+            message: "Server single user Error: " + error
         });
     }
 };
@@ -191,7 +243,7 @@ const resetPassword = async (req, res) => {
     const MailConfig = mailConfig();
 
     const mailOptions = {
-        from: 'Food Rush', 
+        from: 'Food Rush',
         to: UserData?.email,
         subject: 'Password Reset Code',
         text: `Your password reset code is: ${OTP}`
@@ -243,7 +295,7 @@ const verifyResetCode = async (req, res) => {
             success: false,
             message: 'Server Error: ' + error.message,
         });
-    }   
+    }
 };
 
 
@@ -272,15 +324,15 @@ const updatePassword = async (req, res) => {
     }
 };
 
-const uploadImage = asyncHandler(async (req, res, next) => {  
+const uploadImage = asyncHandler(async (req, res, next) => {
     if (!req.file) {
-      return res.status(400).send({ message: "Please upload a file" });
+        return res.status(400).send({ message: "Please upload a file" });
     }
     res.status(200).json({
-      success: true,
-      data: req.file.filename,
+        success: true,
+        data: req.file.filename,
     });
-  });
+});
 
 module.exports = {
     createUser,
