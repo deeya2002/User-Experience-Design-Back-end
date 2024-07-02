@@ -1,22 +1,21 @@
 const router = require('express').Router();
-const postController = require("../controllers/postcontrollers");
+const postCtrl = require('../controllers/postcontrollers')
+const auth = require('../middleware/authGuard')
 
-//create the post
-router.post('/create_post', postController.createPost)
+router.route('/posts')
+.post(auth, postCtrl.createPost)
+.get(auth, postCtrl.getPost)
 
-// get all posts
-router.get("/get_posts", postController.getAllPosts)
+router.route('/post/:id')
+.patch(auth, postCtrl.updatePost)
+.get(auth, postCtrl.getSinglePost)
+.delete(auth,postCtrl.deletePost)
 
-// single post
-router.get("/get_post/:id", postController.getSinglePost)
-
-// update post
-router.put("/update_post/:id", postController.updatePost)
-
-// delete post
-router.delete("/delete_post/:id", postController.deletePost)
-
-//search post
-router.post('/search', postController.searchByPostTitle);
+router.patch('/post/:id/like',auth, postCtrl.likePost)
+router.patch('/post/:id/unlike',auth, postCtrl.unlikePost)
+router.get('/userposts/:id',auth,postCtrl.getUserPosts)
+router.patch('/save/:id',auth,postCtrl.savePost)
+router.patch('/unsave/:id',auth,postCtrl.unsavePost)
+router.get('/savedpost',auth,postCtrl.getsavedPost)
 
 module.exports = router;

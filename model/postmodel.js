@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const postSchema = new mongoose.Schema({
+const postSchema = mongoose.Schema({
     postTitle: {
         type: String,
         required: true,
@@ -16,15 +16,24 @@ const postSchema = new mongoose.Schema({
         required: true,
         trim: true,
     },
-    postImageUrl: {
-        type: String,
-        required: true,
+    images: {
+        type: Array,
+        required: true
     },
-    createdAt: {
-        type: Date,
-        default: Date.now(),
+    likes: [{
+        type: mongoose.Types.ObjectId,
+        ref: 'user'
+    }],
+    comments: [{
+        type: mongoose.Types.ObjectId,
+        ref: 'comment'
+    }],
+    user: {
+        type: mongoose.Types.ObjectId,
+        ref: 'user'
     }
+}, {
+    timestamps: true
 });
 
-const Posts = mongoose.model('posts', postSchema);
-module.exports = Posts;
+module.exports = mongoose.model('post', postSchema);

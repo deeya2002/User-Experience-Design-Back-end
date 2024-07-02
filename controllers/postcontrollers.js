@@ -1,255 +1,245 @@
-const cloudinary = require("cloudinary");
 const Posts = require("../model/postmodel");
+const Users = require("../model/usermodel");
+const Comments = require("../model/commentModel");
 
-
-const createPost = async (req, res) => {
-    // step 1 : check incomming data
-    console.log(req.body);
-    console.log(req.files);
-
-    // step 2 : Destructuring data
-    const {
+const postCtrl = {
+  createPost: async (req, res) => {
+    try {
+      const { postTitle, postDescription, postLocation, images } = req.body;
+      if (images.length === 0)
+        return res.status(400).json({ msg: "Add a photo" });
+      const newPost = new Posts({
         postTitle,
         postDescription,
         postLocation,
-    } = req.body;
-    const { postImage } = req.files;
+        images,
+        user: req.user._id,
+      });
+      await newPost.save();
 
-    // step 3 : Validate data
-    if (!postTitle || !postDescription || !postImage || !postLocation) {
-        return res.json({
-            success: false,
-            message: "Please fill all the fields"
-        })
+      return res.status(200).json({
+        msg: "Post saved",
+        newPost: {
+          ...newPost._doc,
+          user: req.user,
+        },
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
     }
-
+  },
+  getPost: async (req, res) => {
     try {
-        // upload image to cloudinary
-        const uploadedImage = await cloudinary.v2.uploader.upload(
-            postImage.path,
-            {
-                folder: "posts",
-                crop: "scale"
-            }
-        )
+      const posts = await Posts.find({
+        user: [...req.user.following, req.user._id],
+      })
+        .sort("-createdAt")
+        .populate("user likes", "username avatar fullname friends")
+        .populate({
+          path: "comments",
+          populate: {
+            path: "user likes",
+            select: "-password",
+          },
+        });
 
-        // Save to database
-        const newPost = new Posts({
-           postTitle:postTitle,
-            postDescription: postDescription,
-            postLocation: postLocation,
-            postImageUrl: uploadedImage.secure_url
-           
-        })
-        await newPost.save();
-        res.json({
-            success: true,
-            message: "Post created successfully",
-            post: newPost
-        })
-
-
-
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        })
+      return res.status(200).json({
+        msg: "Posts found",
+        result: posts.length,
+        posts,
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
     }
-
-}
-
-
-// get all posts
-// const getPosts = async (req,res) => {
-//     try {
-//         const allPosts = await Posts.find({});
-//         res.json({
-//             success : true,
-//             message : "All posts fetched successfully!",
-//             posts : allPosts
-//         })
-
-//     } catch (error) {
-//         console.log(error);
-//         res.send("Internal server error")
-//     }
-
-// }
-
-/// get all posts with pagination
-const getAllPosts = async (req, res) => {
-
+  },
+  updatePost: async (req, res) => {
     try {
-        // Extract page and limit from query parameters, default to page 1 and limit 10
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query._limit) || 3;
+      const { postTitle, postDescription, postLocation, images } = req.body;
 
-        const skip = (page - 1) * limit;
+      const post = await Posts.findOneAndUpdate(
+        { _id: req.params.id },
+        {
+          postTitle,
+          postDescription,
+          postLocation,
+          images,
+        }
+      ).populate("user likes", "username avatar fullname");
 
-
-
-        // Calculate skip value based on the page and limit
-        // const skip = (page - 1) * limit;
-
-        // Fetch posts with pagination
-        const posts = await Posts.find({}).skip(skip).limit(limit);
-
-        res.status(200).json({
-            success: true,
-            message: "All posts fetched successfully.",
-            count: posts.length,
-            page: page,
-            limit: limit,
-            posts: posts,
-        });
-    } catch (error) {
-        res.json({
-            success: false,
-            message: "Server Error",
-            error: error,
-        });
+      return res.status(200).json({
+        msg: "Post updated",
+        newPost: {
+          ...post._doc,
+          postTitle,
+          postDescription,
+          postLocation,
+          images,
+        },
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
     }
+  },
+  likePost: async (req, res) => {
+    try {
+      const post = await Posts.find({
+        _id: req.params.id,
+        likes: req.user._id,
+      });
+
+      if (post.length > 0)
+        return res.status(400).json({ msg: "You have already liked this post" });
+
+      const like = await Posts.findOneAndUpdate(
+        { _id: req.params.id },
+        {
+          $push: { likes: req.user._id },
+        },
+        { new: true }
+      );
+
+      if (!like) return res.status(400).json({ msg: "No post found" });
+      return res.json({
+        msg: "Post liked",
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+  savePost: async (req, res) => {
+    try {
+      const user = await Users.find({
+        _id: req.user._id,
+        saved: req.params.id,
+      });
+
+      if (user.length > 0)
+        return res.status(400).json({ msg: "You have already saved this post" });
+
+      await Users.findOneAndUpdate(
+        { _id: req.user._id },
+        {
+          $push: { saved: req.params.id },
+        },
+        { new: true }
+      );
+
+      return res.json({
+        msg: "Post saved",
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+  unsavePost: async (req, res) => {
+    try {
+      await Users.findOneAndUpdate(
+        { _id: req.user._id },
+        {
+          $pull: { saved: req.params.id },
+        },
+        { new: true }
+      );
+
+      return res.json({
+        msg: "Post unsaved",
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+  unlikePost: async (req, res) => {
+    try {
+      const unlike = await Posts.findOneAndUpdate(
+        { _id: req.params.id },
+        {
+          $pull: { likes: req.user._id },
+        },
+        { new: true }
+      );
+
+      if (!unlike) return res.status(400).json({ msg: "No post found" });
+      return res.json({
+        msg: "Post unliked",
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+  getsavedPost: async (req, res) => {
+    try {
+      const savedPosts = await Posts.find({ _id: { $in: req.user.saved } })
+        .sort("-createdAt")
+        .populate("user likes", "username avatar fullname");
+
+      return res.json({
+        msg: "Saved posts found",
+        savedPosts,
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+  getUserPosts: async (req, res) => {
+    try {
+      const posts = await Posts.find({ user: req.params.id })
+        .sort("-createdAt")
+        .populate("user likes", "username avatar fullname")
+        .populate({
+          path: "comments",
+          populate: {
+            path: "user likes",
+            select: "-password",
+          },
+        });
+
+      return res.status(200).json({
+        msg: "Posts found",
+        result: posts.length,
+        posts,
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+  getSinglePost: async (req, res) => {
+    try {
+      const post = await Posts.findById(req.params.id)
+        .populate("user likes", "username avatar fullname friends")
+        .populate({
+          path: "comments",
+          populate: {
+            path: "user likes",
+            select: "-password",
+          },
+        });
+
+      return res.status(200).json({
+        post,
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+  deletePost: async (req, res) => {
+    try {
+      const post = await Posts.findOneAndDelete({
+        _id: req.params.id,
+        user: req.user._id,
+      });
+      await Comments.deleteMany({ _id: { $in: post.comments } });
+
+      return res.json({
+        msg: "Post deleted",
+        newPost: {
+          ...post,
+          user: req.user,
+        },
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
 };
 
-// fetch single post
-const getSinglePost = async (req, res) => {
-    const postId = req.params.id;
-    try {
-        const singlePost = await Posts.findById(postId);
-        res.json({
-            success: true,
-            message: "Single post fetched successfully!",
-            post: singlePost
-        })
-
-    } catch (error) {
-        console.log(error);
-        res.send("Internal server error")
-    }
-}
-
-// update post
-const updatePost = async (req, res) => {
-    // step 1 : check incomming data
-    console.log(req.body);
-    console.log(req.files);
-
-    // destructuring data
-    const {
-       postTitle,
-       postDescription,
-        postLocation
-    } = req.body;
-    const { postImage } = req.files;
-
-    // validate data
-    if (!postTitle
-        || !postDescription
-        || !postLocation) {
-        return res.json({
-            success: false,
-            message: "Required fields are missing!"
-        })
-    }
-
-    try {
-        // case 1 : if there is image
-        if (postImage) {
-            // upload image to cloudinary
-            const uploadedImage = await cloudinary.v2.uploader.upload(
-                postImage.path,
-                {
-                    folder: "posts",
-                    crop: "scale"
-                }
-            )
-
-            // make updated json data
-            const updatedData = {
-               postTitle:postTitle,
-                postDescription: postDescription,
-                postLocation: postLocation,
-                postImageUrl: uploadedImage.secure_url
-                
-            }
-
-            // find post and update
-            const postId = req.params.id;
-            await Posts.findByIdAndUpdate(postId, updatedData)
-            res.json({
-                success: true,
-                message: "Post updated successfully with Image!",
-                updatedPost: updatedData
-            })
-
-        } else {
-            // update without image
-            const updatedData = {
-               postTitle:postTitle,
-                postDescription: postDescription,
-                postLocation: postLocation
-                
-            }
-
-            // find post and update
-            const postId = req.params.id;
-            await Posts.findByIdAndUpdate(postId, updatedData)
-            res.json({
-                success: true,
-                message: "Post updated successfully without Image!",
-                updatedPost: updatedData
-            })
-        }
-
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        })
-    }
-}
-
-// delete post
-const deletePost = async (req, res) => {
-    const postId = req.params.id;
-
-    try {
-        await Posts.findByIdAndDelete(postId);
-        res.json({
-            success: true,
-            message: "Post deleted successfully!"
-        })
-
-    } catch (error) {
-        res.json({
-            success: false,
-            message: "Server error!!"
-        })
-    }
-}
-
-const searchByPostTitle = async (req, res) => {
-
-    try {
-        const {postTitle } = req.body;
-        console.log(postTitle)
-        const items = await Posts.find({postTitle });
-        res.status(200).json({ success: true,postTitles: items });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-
-
-}
-
-module.exports = {
-    createPost,
-    getAllPosts,
-    getSinglePost,
-    updatePost,
-    deletePost,
-    searchByPostTitle
-}
+module.exports = postCtrl;

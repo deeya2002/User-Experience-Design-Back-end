@@ -1,34 +1,12 @@
-//import router from express
 const router = require('express').Router();
-const userController = require('../controllers/usercontrollers.js');
-const { authGuard } = require('../middleware/authGuard.js');
-const { upload } = require('../middleware/uploads.js');
+const auth = require('../middleware/authGuard');
+const userCtrl = require ('../controllers/usercontrollers')
+
+router.get('/search',auth, userCtrl.searchUser)
+router.get('/user/:id',auth, userCtrl.getUser)
+router.patch('/user',auth, userCtrl.updateUser)
+router.patch('/user/:id/friend',auth, userCtrl.friend)
+router.patch('/user/:id/unfriend',auth, userCtrl.unfriend)
 
 
-//all the routes for the user
-//register the user
-router.post('/create', userController.createUser);
-
-//login the user
-router.post('/login', userController.loginUser);
-
-//update the user
-router.put('/updateuser', authGuard, userController.updateUser);
-
-//get the user
-router.get('/getuser', authGuard, userController.getSingleUser)
-
-//forget password
-//send the mail
-router.post('/resetpassword', userController.resetPassword);
-
-//check the code
-router.post('/resetcode', userController.verifyResetCode);
-
-//update the password
-router.post('/updatepassword', userController.updatePassword);
-
-router.post("/uploadImage", upload, userController.uploadImage);
-
-//export
 module.exports = router;

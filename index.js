@@ -1,54 +1,55 @@
-//importing packages
-const express = require('express');
-const dotenv = require('dotenv');
-const connectToDB = require('./database/db');
-const cors = require('cors');
-const acceptMultimedia = require('connect-multiparty')
-// making express app
+require("dotenv").config();
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const cookieparser = require("cookie-parser");
+const authRouter = require("./routes/authroutes");
+const userRouter = require("./routes/userroutes");
+const postRouter = require("./routes/postroutes");
+const commentRouter = require("./routes/commentroutes");
+const notifyRouter = require("./routes/notification");
+const socketServer = require("./socketServer");
+
 const app = express();
 
-// configuring dotenv
-dotenv.config();
-
-// //cloudinary config          
-// cloudinary.config({
-//     cloud_name: process.env.CLOUD_NAME,
-//     api_key: process.env.CLOUDINARY_API_KEY,
-//     api_secret: process.env.CLOUNDINARY_API_SECRET,
-// });
-
-app.use(acceptMultimedia())
-
-//cors config to accept request from frontend
-const corsOptions = {
-    origin: true,
-    credentials: true,
-    optionSuccessStatus: 200
-}
-app.use(cors(corsOptions))
-
-//connect to database
-connectToDB();
-
-//Accepting json data
 app.use(express.json());
+app.use(cors());
+app.use(cookieparser());
+
+// Set up routes
+const http = require("http").createServer(app);
+const io = require("socket.io")(http);
+
+app.use("/api", authRouter);
+app.use("/api", userRouter);
+app.use("/api", postRouter);
+app.use("/api", commentRouter);
+app.use("/api", notifyRouter);
 
 
-//creating test route 
-app.get("/test", (req, res) => {
-    res.status(200).send("Hello from server");
-})
+const port = process.env.PORT || 5000;
+const URL = process.env.DB_URL;
 
-//defining routes
-app.use('/api/user', require('./routes/userroutes'));
+console.log("MONGO_URI:", URL);
+console.log("PORT:", port);
 
-const PORT = process.env.PORT;
-
-app.listen(PORT, () => {
-
-    console.log(`server is running on port ${PORT}`)
-
+io.on("connection", (socket) => {
+  socketServer(socket);
 });
 
-//exporting app
-module.exports = app;
+mongoose
+  .connect(URL, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log("Database connected successfully!");
+  })
+  .catch((err) => {
+    console.error("Database connection error:", err);
+  });
+
+http.listen(port, () => {
+  console.log(`App is running on port ${port}`);
+});
+

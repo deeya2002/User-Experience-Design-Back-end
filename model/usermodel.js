@@ -1,40 +1,60 @@
+
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
 
-const userSchema = new mongoose.Schema({
-    fullName: {
-        type: String,
-        required: true,
+const userSchema = mongoose.Schema({
+    username:{
+        type:String,
+        trim:true,
+        unique:true,
+        maxlength:25,
+        require:true
     },
-    userName: {
-        type: String,
-        required: true,
-    },
-    email: {
-        type: String,
-        required: true,
-    },
-    password: {
-        type: String,
-        required: true,
-    },
-    number: {
-        type: String,
-    },
-    location: {
-        type: String,
-    },
-    bio: {
-        type: String,
-    },
-    userImageUrl: {
-        type: String,
-    },
-    isAdmin:{
-        type:Boolean,
-        default : false,
-    }
-});
+    fullname:{
+        type:String,
+        trim:true,
+        required:true,
+        maxlength:25,
 
-const User = mongoose.model('users', userSchema);
-module.exports = User;
+    },
+    email:{
+        type:String,
+        trim:true,
+        required:true
+    },
+    password:{
+        type:String,
+        required:true,
+    },
+    address:{  
+        type:String,
+        default:'',
+
+    },
+    number:{
+        type:String,
+        default:'male'
+    },
+    website:{
+        type:String,
+        default:'',
+    },
+    avatar:{
+        type:String,
+        default:'https://images.unsplash.com/photo-1516321497487-e288fb19713f?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=750&q=80'
+    },
+    story:{
+        type:String,
+        default:'',
+        maxlength:200,
+
+    },
+    friends:[{type:mongoose.Types.ObjectId, ref:'user'}],
+    following:[{type:mongoose.Types.ObjectId, ref:'user'}],
+    saved:[{type:mongoose.Types.ObjectId, ref:'user'}]
+
+
+},{
+    timestamps:true
+})
+
+module.exports = mongoose.model('user',userSchema)
