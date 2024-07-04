@@ -32,11 +32,7 @@ const userSchema = mongoose.Schema({
     },
     number:{
         type:String,
-        default:'male'
-    },
-    website:{
-        type:String,
-        default:'',
+        default:''
     },
     avatar:{
         type:String,
