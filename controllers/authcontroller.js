@@ -1,133 +1,120 @@
-const Users = require("../model/usermodel");
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
+const Users = require("../model/usermodel")
+const bcrypt = require("bcrypt")
+const jwt = require("jsonwebtoken")
+const middleware = require("../middleware/authGuard")
+const { mailConfig, resetCode } = require("../utils/resetPassword")
+const ResetCode = require("../model/resetCodeModel");
+const { asyncHandler } = require('../middleware/async');
 
-const authCtrl = {
-register: async (req,res)=>{
-    try {
-        const {fullname, username, email, password, number} = req.body;
+const createUser = async (req, res) => {
+    // step 1 : Check if data is coming or not
+    console.log(req.body);
 
-        const newUsername = username.toLowerCase().replace(/ /g,'');
-        
-        const user_name = await Users.findOne({username: newUsername})
-        if (user_name) return res.status(400).json({msg: 'this username already exists'})
+    // step 2 : Destructure the data
+    const { fullName, userName, email, password } = req.body;
 
-        const Email = await Users.findOne({email: email})
-        if(Email) return res.status(400).json({msg: 'this email already exists'})
-
-        if(password.length < 6) return res.status(400).json({msg: "password must be atleast 6 characters long"})
-
-        const passwordHash = await bcrypt.hash(password,13);
-
-        const newUser = new Users({
-            fullname, username:newUsername ,email, password:passwordHash, number
+    // step 3 : validate the incomming data
+    if (!fullName || !userName || !email || !password) {
+        return res.json({
+            success: false,
+            message: "Please enter all the fields."
         })
-        
-        
-        const access_token= createAccessToken({id: newUser._id});
-        const refresh_token= createRefreshToken({id: newUser._id});
-        
-
-        res.cookie('refreshtoken', refresh_token,{
-            httpOnly: true,
-            path:'/api/refresh_token',
-            maxAge: 24*30*60*60*1000   //30days
-        })
-
-        await newUser.save();
-
-        res.json({
-            msg:"registerd sucess",
-            access_token,
-            user:{
-            ...newUser._doc,
-            password:''
-            }
-        })
-    } catch (err) {
-        return res.status(500).json({msg: err.message})
     }
-},
-login: async (req,res)=>{
+
+    // step 4 : try catch block
     try {
-        const {email , password} = req.body;
-
-        const user = await Users.findOne({email})
-        .populate("friends following" , "-password")
-
-        if(!user) return res.status(400).json({msg: 'User does not exists'})
-
-        const isMatch = await bcrypt.compare(password,user.password);
-        if(!isMatch) return res.status(400).json({msg: 'User Passowrd is incorrect'})
-
-        const access_token= createAccessToken({id: user._id});
-        const refresh_token= createRefreshToken({id: user._id});
-        
-
-        res.cookie('refreshtoken', refresh_token,{
-            httpOnly: true,
-            path:'/api/refresh_token',
-            maxAge: 24*30*60*60*1000   //30days
-        })
-
-        
-
-        res.json({
-            msg:"login sucess",
-            access_token,
-            user:{
-            ...user._doc,
-            password:''
-            }
-        })
-
-    } catch (err) {
-        return res.status(500).json({msg: err.message})
-    }
-},
-logout: async (req,res)=>{
-    try {
-        res.clearCookie('refreshtoken',{path:'/api/refresh_token'})
-        res.json({msg:"Logged out"})
-    } catch (err) {
-        return res.status(500).json({msg: err.message})
-    }
-},
-generateAccessToken: async (req,res)=>{
-    try {
-        const rf_token = req.cookies.refreshtoken;
-        
-       
-        if(!rf_token) return res.status(400).json({msg:"please login now"})
-
-        jwt.verify(rf_token, process.env.REFRESHTOKENSECRET, async(err,result)=>{
-            if(err) return res.status(400).json({msg:"Please login now"})
-
-            const user = await Users.findById(result.id).select("-password")
-            .populate("friends following")
-
-            if(!user) return res.status(400).json({msg:"user does not exist"})
-
-            const access_token= createAccessToken({id: result.id});
-
-            res.json({
-                access_token,
-                user
+        // step 5 : Check existing user
+        const existingUser = await Users.findOne({ email: email })
+        if (existingUser) {
+            return res.json({
+                success: false,
+                message: "User already exists."
             })
-            
+        }
+
+        // password encryption
+        const randomSalt = await bcrypt.genSalt(10);
+        const encryptedPassword = await bcrypt.hash(password, randomSalt)
+
+        // step 6 : create new user
+        const newUser = new Users({
+            // fieldname : incomming data name
+            fullName: fullName,
+            userName: userName,
+            email: email,
+            password: encryptedPassword,
         })
-    } catch (err) {
-        return res.status(500).json({msg: err.message})
+
+        // step 7 : save user and response
+        await newUser.save();
+        res.status(200).json({
+            success: true,
+            message: "User created successfully."
+        })
+
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json("Server Error")
     }
-},
-}
 
 
-const createAccessToken = ( payload) =>{
-    return jwt.sign(payload, process.env.ACCESSTOKENSECRET, {expiresIn: "1d"})
 }
+const loginUser = async (req, res) => {
+    //step 1: check incoming data
+    console.log(req.body)
+    // step 2 : validation
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.json({
+            success: false,
+            message: "Please enter all fields."
+        })
+    }
+    //try catch block
+    try {
+        //finding user
+        const user = await Users.findOne({ email: email })
+        if (!user) {
+            return res.json({
+                success: fasle,
+                message: "User does not exists"
+            })
+        }
+        //comparing password
+        const databasePassword = user.password;
+        const isMatched = await bcrypt.compare(password, databasePassword)
+        if (!isMatched) {
+            return res.json({
+                success: fasle,
+                message: "Invalid credentials"
+            })
+        }
+        //creating token
+        const token = await jwt.sign(
+            { id: user._id, isAdmin: user.isAdmin },
+            process.env.JWT_SECRET
+        )
 
-const createRefreshToken = ( payload) =>{
-    return jwt.sign(payload, process.env.REFRESHTOKENSECRET,{expiresIn: "30d"})
+        //response
+        res.status(200).json({
+            success: true,
+            message: "User Logged in Successfully.",
+            token: token,
+            userData: user
+        })
+
+    }
+    catch (error) {
+        return res.json({
+            success: false,
+            message: "Servor Error",
+            error: error
+        })
+    }
 }
-module.exports = authCtrl
+module.exports = {
+    createUser,
+    loginUser
+}
