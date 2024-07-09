@@ -1,6 +1,6 @@
 //import router from express
 const router = require('express').Router();
-const authController = require('../controllers/authcontrollers');
+const authController = require('../controllers/authcontroller');
 
 
 

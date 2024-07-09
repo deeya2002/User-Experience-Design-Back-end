@@ -2,10 +2,6 @@ const mongoose = require('mongoose');
 const Users = require("../model/usermodel")
 const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
-const middleware = require("../middleware/authGuard")
-const { mailConfig, resetCode } = require("../utils/resetPassword")
-const ResetCode = require("../model/resetCodeModel");
-const { asyncHandler } = require('../middleware/async');
 
 const createUser = async (req, res) => {
     // step 1 : Check if data is coming or not
