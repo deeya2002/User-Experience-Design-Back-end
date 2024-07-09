@@ -84,56 +84,56 @@ const getUserJournals = async (req, res) => {
 
 
 // get all Journals
-// const getJournals = async (req,res) => {
-//     try {
-//         const allJournals = await Journals.find({});
-//         res.json({
-//             success : true,
-//             message : "All Journals fetched successfully!",
-//             Journals : allJournals
-//         })
-
-//     } catch (error) {
-//         console.log(error);
-//         res.send("Internal server error")
-//     }
-
-// }
-
-/// get all Journals with pagination
-const getAllJournals = async (req, res) => {
-
+const getAllJournals = async (req,res) => {
     try {
-        // Extract page and limit from query parameters, default to page 1 and limit 10
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query._limit) || 3;
-
-        const skip = (page - 1) * limit;
-
-
-
-        // Calculate skip value based on the page and limit
-        // const skip = (page - 1) * limit;
-
-        // Fetch Journals with pagination
-        const Journals = await Journals.find({}).skip(skip).limit(limit);
-
-        res.status(200).json({
-            success: true,
-            message: "All Journals fetched successfully.",
-            count: Journals.length,
-            page: page,
-            limit: limit,
-            Journals: Journals,
-        });
-    } catch (error) {
+        const allJournals = await Journals.find({});
         res.json({
-            success: false,
-            message: "Server Error",
-            error: error,
-        });
+            success : true,
+            message : "All Journals fetched successfully!",
+            Journals : allJournals
+        })
+
+    } catch (error) {
+        console.log(error);
+        res.send("Internal server error")
     }
-};
+
+}
+
+// /// get all Journals with pagination
+// const getAllJournals = async (req, res) => {
+
+//     try {
+//         // Extract page and limit from query parameters, default to page 1 and limit 10
+//         const page = parseInt(req.query.page) || 1;
+//         const limit = parseInt(req.query._limit) || 3;
+
+//         const skip = (page - 1) * limit;
+
+
+
+//         // Calculate skip value based on the page and limit
+//         // const skip = (page - 1) * limit;
+
+//         // Fetch Journals with pagination
+//         const Journals = await Journals.find({}).skip(skip).limit(limit);
+
+//         res.status(200).json({
+//             success: true,
+//             message: "All Journals fetched successfully.",
+//             count: Journals.length,
+//             page: page,
+//             limit: limit,
+//             Journals: Journals,
+//         });
+//     } catch (error) {
+//         res.json({
+//             success: false,
+//             message: "Server Error",
+//             error: error,
+//         });
+//     }
+// };
 
 // fetch single journal
 const getSinglejournal = async (req, res) => {

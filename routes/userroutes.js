@@ -25,13 +25,14 @@ router.post('/updatepassword', userController.updatePassword);
 router.post('/uploadImage', upload, userController.uploadImage);
 
 // Follow a user
-router.post('/follow/:userId', authGuard, userController.followUser);
+router.post('/follow', authGuard, userController.followUser);
 
 // Unfollow a user
-router.post('/unfollow/:userId', authGuard, userController.unfollowUser);
+router.post('/unfollow', authGuard, userController.unfollowUser);
 
 // Search for users
 router.get('/search', userController.searchUser);
+
 
 // Export
 module.exports = router;

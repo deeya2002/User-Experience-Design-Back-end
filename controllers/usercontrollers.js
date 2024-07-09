@@ -173,62 +173,67 @@ const uploadImage = asyncHandler(async (req, res, next) => {
     });
 });
 
-const Follow = require('../model/usermodel'); // Adjust import if needed
-
-// Follow a user
 const followUser = async (req, res) => {
-    const followerId = req.user.id;
-    const { followingId } = req.body;
+    const {followeeId } = req.body;
+   const  userId=req.user.id
 
     try {
-        const existingFollow = await Follow.findOne({ follower: followerId, following: followingId });
-        if (existingFollow) {
-            return res.status(400).json({
-                success: false,
-                message: 'Already following this user.'
-            });
+        const follower = await Users.findById(userId);
+        if (!follower) {
+            return res.status(404).json({ message: 'Follower user not found' });
         }
 
-        const follow = new Follow({ follower: followerId, following: followingId });
-        await follow.save();
+        const followee = await Users.findById(followeeId);
+        if (!followee) {
+            return res.status(404).json({ message: 'Followee user not found' });
+        }
 
-        return res.json({
-            success: true,
-            message: 'User followed successfully.'
-        });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({
-            success: false,
-            message: 'Server Error: ' + error.message
-        });
+        if (!follower.follows.includes(followeeId)) {
+            follower.follows.push(followeeId);
+            await follower.save();
+            return res.status(200).json({ message: `User ${userId} now follows user ${followeeId}` });
+        } else {
+            return res.status(200).json({ message: `User ${userId} already follows user ${followeeId}` });
+        }
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: 'Server error' });
     }
 };
 
 // Unfollow a user
 const unfollowUser = async (req, res) => {
-    const followerId = req.user.id;
-    const { followingId } = req.body;
+    const {unfolloweeId } = req.body;
+   const  userId=req.user.id
 
     try {
-        const follow = await Follow.findOneAndDelete({ follower: followerId, following: followingId });
-        if (!follow) {
-            return res.status(400).json({
-                success: false,
-                message: 'Not following this user.'
-            });
+        const follower = await Users.findById(userId);
+        if (!follower) {
+            return res.status(404).json({ message: 'Follower user not found' });
         }
 
-        return res.json({
-            success: true,
-            message: 'User unfollowed successfully.'
-        });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({
-            success: false,
-            message: 'Server Error: ' + error.message
-        });
+        const unfollowee = await Users.findById(unfolloweeId);
+        if (!unfollowee) {
+            return res.status(404).json({ message: 'Followee user not found' });
+        }
+
+        if (follower.follows.includes(unfolloweeId)) {
+            // follower.follows.push(followeeId);
+            // await follower.save();
+            const newArray = follower.follows.reduce((acc, item) => {
+                if (item !== unfolloweeId) {
+                  acc.push(item);
+                }
+                return acc;
+              }, []);
+              console.log(newArray)
+            return res.status(200).json({ message: `User ${userId} now not following user ${unfolloweeId}` });
+        } else {
+            return res.status(200).json({ message: `User ${userId} already unfollows user ${unfolloweeId}` });
+        }
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: 'Server error' });
     }
 };
 

@@ -36,6 +36,9 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    follows: [{  
+        type: mongoose.Schema.Types.ObjectId,  
+        ref: 'User' }], // Add this line
     followers: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'users'
