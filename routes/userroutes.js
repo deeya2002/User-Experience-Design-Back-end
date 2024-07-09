@@ -1,12 +1,37 @@
+// userRoutes.js
+
 const router = require('express').Router();
-const auth = require('../middleware/authGuard');
-const userCtrl = require ('../controllers/usercontrollers')
+const userController = require('../controllers/usercontrollers.js');
+const { authGuard } = require('../middleware/authGuard.js');
+const { upload } = require('../middleware/uploads.js');
 
-router.get('/search',auth, userCtrl.searchUser)
-router.get('/user/:id',auth, userCtrl.getUser)
-router.patch('/user',auth, userCtrl.updateUser)
-router.patch('/user/:id/friend',auth, userCtrl.friend)
-router.patch('/user/:id/unfriend',auth, userCtrl.unfriend)
+// Update the user
+router.put('/updateuser', authGuard, userController.updateUser);
 
+// Get the user
+router.get('/getuser', authGuard, userController.getSingleUser);
 
+// Forget password
+// Send the mail
+router.post('/resetpassword', userController.resetPassword);
+
+// Check the code
+router.post('/resetcode', userController.verifyResetCode);
+
+// Update the password
+router.post('/updatepassword', userController.updatePassword);
+
+// Upload an image
+router.post('/uploadImage', upload, userController.uploadImage);
+
+// Follow a user
+router.post('/follow/:userId', authGuard, userController.followUser);
+
+// Unfollow a user
+router.post('/unfollow/:userId', authGuard, userController.unfollowUser);
+
+// Search for users
+router.get('/search', userController.searchUser);
+
+// Export
 module.exports = router;
