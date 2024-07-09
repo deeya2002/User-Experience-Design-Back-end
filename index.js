@@ -43,25 +43,11 @@ app.get("/test", (req, res) => {
 //defining auth routes
 app.use('/api/auth', require('./routes/authroutes'));
 
+//defining user routes
 app.use('/api/user', require('./routes/userroutes'));
 
-// //defining routes
-// app.use('/api/user', require('./routes/userroutes'));
-
-//create route for journal
+//defining journal routes
 app.use('/api/journal', require('./routes/journalroutes'));
-
-// //create route for foods
-// app.use('/api/food', require('./routes/food_routes'));
-
-// //create route for restaurant
-// app.use('/api/restaurant', require('./routes/restaurantRoutes'));
-
-// //create route for offer
-// app.use('/api/offer', require('./routes/offerRoutes'));
-
-// //cretae route for review
-// app.use("/api/reviews", require('./routes/reviewRoute'));
 
 const PORT = process.env.PORT;
 
