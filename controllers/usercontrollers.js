@@ -6,19 +6,22 @@ const ResetCode = require("../model/resetCodeModel");
 const { asyncHandler } = require('../middleware/async');
 
 const getSingleUser = async (req, res) => {
-    const userId = req.user.id;
+    const userId = req.body.userId;
+    console.log("data is ", userId)
     try {
         const singleuser = await Users.findById(userId);
+        console.log(singleuser)
         if (singleuser) {
             return res.json({
                 success: true,
                 message: "User retrieved successfully",
-                userProfile: {
-                    id: singleuser.id,
-                    firstName: singleuser.firstName,
-                    lastName: singleuser.lastName,
-                    email: singleuser.email,
-                }
+                singleuser
+                // userProfile: {
+                //     id: singleuser.id,
+                //     fullName: singleuser.fullname,
+                //     userName: singleuser.userame,
+                //     email: singleuser.email,
+                // }
             });
         } else {
             return res.status(404).json({
@@ -174,9 +177,8 @@ const uploadImage = asyncHandler(async (req, res, next) => {
 });
 
 const followUser = async (req, res) => {
-    const {followeeId } = req.body;
-   const  userId=req.user.id
-
+    const { followeeId } = req.body;
+    const userId = req.user.id
     try {
         const follower = await Users.findById(userId);
         if (!follower) {
@@ -188,23 +190,25 @@ const followUser = async (req, res) => {
             return res.status(404).json({ message: 'Followee user not found' });
         }
 
+
         if (!follower.follows.includes(followeeId)) {
             follower.follows.push(followeeId);
+            // console.log("updated" + follower)
             await follower.save();
             return res.status(200).json({ message: `User ${userId} now follows user ${followeeId}` });
         } else {
             return res.status(200).json({ message: `User ${userId} already follows user ${followeeId}` });
         }
     } catch (err) {
-        console.error(err);
+        console.error("here", err);
         return res.status(500).json({ message: 'Server error' });
     }
 };
 
 // Unfollow a user
 const unfollowUser = async (req, res) => {
-    const {unfolloweeId } = req.body;
-   const  userId=req.user.id
+    const { unfolloweeId } = req.body;
+    const userId = req.user.id
 
     try {
         const follower = await Users.findById(userId);
@@ -222,11 +226,11 @@ const unfollowUser = async (req, res) => {
             // await follower.save();
             const newArray = follower.follows.reduce((acc, item) => {
                 if (item !== unfolloweeId) {
-                  acc.push(item);
+                    acc.push(item);
                 }
                 return acc;
-              }, []);
-              console.log(newArray)
+            }, []);
+            console.log(newArray)
             return res.status(200).json({ message: `User ${userId} now not following user ${unfolloweeId}` });
         } else {
             return res.status(200).json({ message: `User ${userId} already unfollows user ${unfolloweeId}` });

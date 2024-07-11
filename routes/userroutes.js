@@ -9,7 +9,7 @@ const { upload } = require('../middleware/uploads.js');
 router.put('/updateuser', authGuard, userController.updateUser);
 
 // Get the user
-router.get('/getuser', authGuard, userController.getSingleUser);
+router.post('/getuser', userController.getSingleUser);
 
 // Forget password
 // Send the mail

@@ -64,6 +64,7 @@ const createjournal = async (req, res) => {
 // Get journals posted by a specific user
 const getUserJournals = async (req, res) => {
     const userId = req.params.userId;
+    console.log(userId)
 
     try {
         const userJournals = await Journals.find({ createdBy: userId });
@@ -84,13 +85,38 @@ const getUserJournals = async (req, res) => {
 
 
 // get all Journals
-const getAllJournals = async (req,res) => {
+const getAllJournals = async (req, res) => {
     try {
-        const allJournals = await Journals.find({});
+        const allJournals = await Journals.aggregate([
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'createdBy',
+                    foreignField: '_id',
+                    as: 'userDetails',
+                },
+            },
+            {
+                $unwind: '$userDetails',
+            },
+            {
+                $project: {
+                    journalName: 1,
+                    journalDescription: 1,
+                    journalImageUrl: 1,
+                    journalLocation: 1,
+                    likes: 1,
+                    savedBy: 1,
+                    createdAt: 1,
+                    'userDetails.username': 1,
+                },
+            },
+        ]);
+        // const allJournals = await Journals.find({});
         res.json({
-            success : true,
-            message : "All Journals fetched successfully!",
-            Journals : allJournals
+            success: true,
+            message: "All Journals fetched successfully!",
+            Journals: allJournals
         })
 
     } catch (error) {
@@ -137,7 +163,6 @@ const getAllJournals = async (req,res) => {
 
 // fetch single journal
 const getSinglejournal = async (req, res) => {
-    console.log("error here")
     const journalId = req.params.id;
     try {
         const singlejournal = await Journals.findById(journalId);

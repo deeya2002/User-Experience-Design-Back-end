@@ -9,7 +9,7 @@ const { authGuard } = require('../middleware/authGuard'); // Assuming you have a
 router.post('/create', authGuard, journalController.createjournal);
 
 // Route to get all journals by a specific user
-router.get('/user/:userId', authGuard, journalController.getUserJournals);
+router.get('/user/:userId',  journalController.getUserJournals);//authGuard,
 
 // Route to get all journals with pagination
 router.get('/getalljournal', journalController.getAllJournals);

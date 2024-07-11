@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
     },
     userName: {
         type: String,
-        required: true,
+        // required: true,
         unique: true,
     },
     email: {
@@ -29,6 +29,9 @@ const userSchema = new mongoose.Schema({
     bio: {
         type: String,
     },
+    occupation: {
+        type: String,
+    },
     userImageUrl: {
         type: String,
     },
@@ -36,17 +39,10 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
-    follows: [{  
-        type: mongoose.Schema.Types.ObjectId,  
-        ref: 'User' }], // Add this line
-    followers: [{
+    follows: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'users'
-    }],
-    following: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'users'
-    }],
+    }], // Add this line
     posts: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'posts'
