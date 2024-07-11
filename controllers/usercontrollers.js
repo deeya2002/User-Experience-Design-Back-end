@@ -74,7 +74,6 @@ const resetPassword = async (req, res) => {
     console.log(UserData)
     const user = await Users.findOne({ email: UserData?.email });
     const OTP = resetCode;
-    console.log(user.id);
     console.log(OTP);
     await ResetCode.findOneAndUpdate({
         userId: user.id

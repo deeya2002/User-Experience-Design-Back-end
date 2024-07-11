@@ -1,6 +1,7 @@
 const cloudinary = require("cloudinary");
 const Journals = require("../model/journalModel");
 const Users = require('../model/usermodel');
+const mongoose = require('mongoose');
 
 
 const createjournal = async (req, res) => {
@@ -126,57 +127,74 @@ const getAllJournals = async (req, res) => {
 
 }
 
-// /// get all Journals with pagination
-// const getAllJournals = async (req, res) => {
-
-//     try {
-//         // Extract page and limit from query parameters, default to page 1 and limit 10
-//         const page = parseInt(req.query.page) || 1;
-//         const limit = parseInt(req.query._limit) || 3;
-
-//         const skip = (page - 1) * limit;
-
-
-
-//         // Calculate skip value based on the page and limit
-//         // const skip = (page - 1) * limit;
-
-//         // Fetch Journals with pagination
-//         const Journals = await Journals.find({}).skip(skip).limit(limit);
-
-//         res.status(200).json({
-//             success: true,
-//             message: "All Journals fetched successfully.",
-//             count: Journals.length,
-//             page: page,
-//             limit: limit,
-//             Journals: Journals,
-//         });
-//     } catch (error) {
-//         res.json({
-//             success: false,
-//             message: "Server Error",
-//             error: error,
-//         });
-//     }
-// };
 
 // fetch single journal
+// const getSinglejournal = async (req, res) => {
+//     const journalId = req.params.id;
+//     try {
+//         const singlejournal = await Journals.findById(journalId);
+//         res.json({
+//             success: true,
+//             message: "Single journal fetched successfully!",
+//             journal: singlejournal
+//         })
+
+//     } catch (error) {
+//         console.log(error);
+//         res.send("Internal server error")
+//     }
+// }
 const getSinglejournal = async (req, res) => {
     const journalId = req.params.id;
     try {
-        const singlejournal = await Journals.findById(journalId);
+        const singleJournal = await Journals.aggregate([
+            {
+                $match: { _id: new mongoose.Types.ObjectId(journalId) }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'createdBy',
+                    foreignField: '_id',
+                    as: 'userDetails',
+                },
+            },
+            {
+                $unwind: '$userDetails',
+            },
+            {
+                $project: {
+                    journalName: 1,
+                    journalDescription: 1,
+                    journalImageUrl: 1,
+                    journalLocation: 1,
+                    likes: 1,
+                    savedBy: 1,
+                    createdAt: 1,
+                    'userDetails.username': 1,
+                },
+            },
+        ]);
+
+        if (singleJournal.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Journal not found!",
+            });
+        }
+
         res.json({
             success: true,
             message: "Single journal fetched successfully!",
-            journal: singlejournal
-        })
+            journal: singleJournal[0]
+        });
 
     } catch (error) {
         console.log(error);
-        res.send("Internal server error")
+        res.status(500).send("Internal server error");
     }
-}
+};
+
 
 // update journal
 const updatejournal = async (req, res) => {
@@ -295,10 +313,9 @@ const searchByjournalName = async (req, res) => {
 
 // Like a journal
 const likeJournal = async (req, res) => {
-    const journalId = req.params.id;
+    const {journalId} = req.params.id;
     const userId = req.user.id;
-    console.log(journalId)
-
+    console.log("hello" + userId)
     try {
         const journal = await Journals.findById(journalId);
         if (!journal) {
@@ -314,7 +331,7 @@ const likeJournal = async (req, res) => {
 
         res.json({ success: true, message: 'Journal liked successfully' });
     } catch (error) {
-        console.error(error);
+        console.error("error is here" + error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
