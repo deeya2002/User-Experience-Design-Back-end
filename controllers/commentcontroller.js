@@ -1,107 +1,91 @@
-// const Comments = require('../model/commentModel');
-// const Posts = require('../model/postmodel')
-// const commentCtrl = {
-// createComment: async (req,res) => {
-//     try {
-//         const {content, postId, tag, reply, postUserId} = req.body;
+const mongoose = require('mongoose');
+const { createError } = require("../utils/createError.js");
+const Users = require("../model/usermodel");
+const Comment = require("../model/commentModel.js");
 
-//         const post = await Posts.findById(postId)
+const createComment = async (req, res, next) => {
+    const newComment = new Comment({
+        userId: req.user.id,
+        desc: req.body.desc,
+    });
 
-//         if(!post) return res.status(400).json({msg:"no post found"})
-        
-//         const newComment = await  new Comments({
-//             user:req.user._id, content, tag, reply, postUserId, postId
-//         })
+    try {
+        const comment = await Comment.findOne({
+            userId: req.user.id,
+        });
 
-        
-//      await Posts.findOneAndUpdate({_id:postId},{
-//             $push:{commentss: newComment._id}
-//         })
+        if (comment) {
+            return next(
+                createError(403, "You have already created a comment!")
+            );
+        }
 
-//         await newComment.save()
-//         return res.json({newComment})
-//     } catch (err) {
-//         return res.status(500).json({msg: err.message})
-//     }
-// },
-// updateComment: async (req,res) => {
-//     try {
-//         const {content} = req.body;
+        // TODO: Check if the user purchased the gig.
 
-//         await Comments.findOneAndUpdate({_id: req.params.id, user:req.user._id},{content})
+        const savedComment = await newComment.save();
 
-        
-       
-     
-//         return res.json({msg:'update successfully'})
-//     } catch (err) {
-//         return res.status(500).json({msg: err.message})
-//     }
-// },
-// likeComment: async(req,res)=> {
+        // Sending a success message along with the created comment data
+        res.status(201).json({
+            message: "Comment has been created successfully!",
+            comment: savedComment,
+        });
+    } catch (err) {
+        next(err);
+    }
+};
 
-//     try {
-        
-//         const comment = await Comments.find({_id: req.params.id, likes: req.user._id})
-       
-//         if(comment.length > 0) return res.status(400).json({msg:"you have already like this comment"})
-    
-//         await Comments.findOneAndUpdate({_id:req.params.id},{
-//             $push: {likes: req.user._id}
-//         },{new:true})
-    
-//         return res.json({
-//             msg: "Comment Likes"
-//         })
-    
-//     } 
-//     catch (err) {
-//         return res.status(500).json({msg: err.message})
-//     }
-       
-    
-// },
-// unlikeComment: async(req,res)=> {
-    
-//         try {
-            
-        
-//             await Comments.findOneAndUpdate({_id:req.params.id},{
-//                 $pull: {likes: req.user._id}
-//             },{new:true})
-        
-//             return res.json({
-//                 msg: "Comment UnLiked"
-//             })
-        
-//         } 
-//         catch (err) {
-//             return res.status(500).json({msg: err.message})
-//         }
-           
-        
-// },
-// deleteComment: async (req,res) =>{
-//     try {
-//         const comment = await Comments.findOneAndDelete({
-//             _id: req.params.id,
-//             $or:[
-//                 {postUserId: req.user._id},
-//                 {user:req.user._id}
-//             ]
-//         })
-     
-//         const post = await Posts.findOneAndUpdate({_id: comment.postId},{
-//             $pull:{commentss: req.params.id}
-//         })
+const getComments = async (req, res) => {
+    try {
+        const allComments = await Comment.aggregate([
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'createdBy',
+                    foreignField: '_id',
+                    as: 'userDetails',
+                },
+            },
+            {
+                $unwind: '$userDetails',
+            },
+            {
+                $project: {
+                    commentText: 1,
+                    createdAt: 1,
+                    'userDetails.username': 1,
+                },
+            },
+        ]);
 
-//         res.json({
-//             msg: "comment delete"
-//         })
-//     } catch (err) {
-//         return res.status(500).json({msg: err.message})
-//     }
-// }
-// }
+        res.json({
+            success: true,
+            message: "All comments fetched successfully!",
+            comments: allComments,
+        });
+    } catch (err) {
+        console.error(err);
+        res.send("Internal server error");
+    }
+};
 
-// module.exports = commentCtrl
+const deleteComment = async (req, res) => {
+    const commentId = req.params.id;
+    try {
+        await Comment.findByIdAndDelete(commentId);
+        res.json({
+            success: true,
+            message: "Comment deleted successfully!",
+        });
+    } catch (error) {
+        res.json({
+            success: false,
+            message: "Server error!",
+        });
+    }
+};
+
+module.exports = {
+    createComment,
+    getComments,
+    deleteComment,
+};

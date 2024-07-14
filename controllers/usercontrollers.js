@@ -84,7 +84,7 @@ const resetPassword = async (req, res) => {
     const MailConfig = mailConfig();
 
     const mailOptions = {
-        from: 'Food Rush',
+        from: 'Travel Log',
         to: UserData?.email,
         subject: 'Password Reset Code',
         text: `Your password reset code is: ${OTP}`
