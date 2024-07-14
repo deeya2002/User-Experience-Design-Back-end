@@ -3,40 +3,43 @@ const { createError } = require("../utils/createError.js");
 const Users = require("../model/usermodel");
 const Comment = require("../model/commentModel.js");
 
-const createComment = async (req, res, next) => {
-    const newComment = new Comment({
-        userId: req.user.id,
-        desc: req.body.desc,
-    });
+const createComment = async (req, res) => {
+    const { journalId, commentText } = req.body;
+    const userId = req.user.id; // Assuming the user ID is extracted from the JWT token
 
     try {
-        const comment = await Comment.findOne({
-            userId: req.user.id,
+        // Create the new comment
+        const newComment = new Comment({
+            userId,
+            journalId,
+            commentText,
+            createdBy: userId,
+            createdAt: new Date()
         });
 
-        if (comment) {
-            return next(
-                createError(403, "You have already created a comment!")
-            );
-        }
+        console.log(newComment);
+        await newComment.save();
 
-        // TODO: Check if the user purchased the gig.
-
-        const savedComment = await newComment.save();
-
-        // Sending a success message along with the created comment data
         res.status(201).json({
-            message: "Comment has been created successfully!",
-            comment: savedComment,
-        });
+            success: true,
+            message: "Comment created successfully!",
+            comment: newComment
+        }
+        );
     } catch (err) {
-        next(err);
+        console.error(err);
+        res.status(err.status || 500).send(err.message || "Internal server error");
     }
 };
 
 const getComments = async (req, res) => {
+    const { journalId } = req.params; // Assuming journalId is passed as a URL parameter
+    console.log("id" + journalId);
     try {
         const allComments = await Comment.aggregate([
+            {
+                $match: { journalId: new mongoose.Types.ObjectId(journalId) } // Filter comments by journalId
+            },
             {
                 $lookup: {
                     from: 'users',
@@ -64,9 +67,10 @@ const getComments = async (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.send("Internal server error");
+        res.status(500).send("Internal server error");
     }
 };
+
 
 const deleteComment = async (req, res) => {
     const commentId = req.params.id;

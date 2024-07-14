@@ -6,7 +6,7 @@ const { authGuard, authGuardAdmin } = require('../middleware/authGuard');
 router.post('/create_comment',authGuard, commentController.createComment);
 
 // get all comment
-router.get("/get_comments",commentController.getComments);
+router.get("/get_comments/:journalId",commentController.getComments);
 
 // delete offer by id 
 router.delete("/delete_comment/:id", authGuardAdmin, commentController.deleteComment);

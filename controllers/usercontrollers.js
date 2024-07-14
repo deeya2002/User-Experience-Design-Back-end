@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const cloudinary = require("cloudinary");
 const Users = require("../model/usermodel")
 const bcrypt = require("bcrypt")
 const { mailConfig, resetCode } = require("../utils/resetPassword")
@@ -38,45 +39,97 @@ const getSingleUser = async (req, res) => {
     }
 };
 
-//update the user
-const updateUser = async (req, res) => {
-    const userId = req.user.id;
-    const UserData = req.body;
+// Update user profile
+const updateUserProfile = async (req, res) => {
     try {
-        const user = await Users.findOne({ _id: userId });
-        if (user) {
-            await Users.findByIdAndUpdate({
-                _id: userId
-            }, UserData);
-        } else {
+        // Step 1: Check incoming data
+        console.log(req.body);
+        console.log(req.files);
+
+        // Destructuring data
+        const {
+            fullname,
+            userName,
+            email,
+            number,
+            location,
+            bio,
+            occupation
+        } = req.body;
+        const { userImage } = req.files;
+
+        // Validate required fields
+        if (!fullname || !email) {
             return res.json({
                 success: false,
-                message: "User doesnot exist."
-            })
+                message: "Full name and email are required fields!",
+            });
         }
-        return res.json({
+
+        // Prepare updated data
+        let updatedData = {
+            fullname,
+            userName,
+            email,
+            number,
+            location,
+            bio,
+            occupation,
+            updatedAt: new Date() // Update timestamp
+        };
+
+        if (userImage) {
+            // Upload image to Cloudinary
+            const uploadedImage = await cloudinary.uploader.upload(userImage.path, {
+                folder: "user_profiles",
+                crop: "scale",
+            });
+            updatedData.userImageUrl = uploadedImage.secure_url;
+        }
+
+        // Find user and update
+        const userId = req.params.id;
+        const updatedUser = await Users.findByIdAndUpdate(userId, updatedData, { new: true });
+
+        if (!updatedUser) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        res.json({
             success: true,
-            message: "User updated."
-        })
+            message: "User profile updated successfully!",
+            updatedUser,
+        });
+
     } catch (error) {
-        return res.json({
+        console.error('Error updating user profile:', error);
+        res.status(500).json({
             success: false,
-            message: "Server Error " + error
-
-        })
+            message: "Internal server error",
+        });
     }
-
-}
+};
 
 //send email to the user
 const resetPassword = async (req, res) => {
     const UserData = req.body;
     console.log(UserData)
     const user = await Users.findOne({ email: UserData?.email });
+if(!user){
+          return res.json({
+            success: false,
+            message: "User Not Found"
+        })
+}
     const OTP = resetCode;
     console.log(OTP);
+    console.log(user)
     await ResetCode.findOneAndUpdate({
-        userId: user.id
+        userId: user._id
+
     }, {
         resetCode: OTP
     }, { upsert: true })
@@ -279,7 +332,7 @@ const searchUser = async (req, res) => {
 
 
 module.exports = {
-    updateUser,
+    updateUserProfile,
     resetPassword,
     verifyResetCode,
     updatePassword,

@@ -146,6 +146,7 @@ const getAllJournals = async (req, res) => {
 // }
 const getSinglejournal = async (req, res) => {
     const journalId = req.params.id;
+    console.log(journalId)
     try {
         const singleJournal = await Journals.aggregate([
             {
@@ -313,20 +314,20 @@ const searchByjournalName = async (req, res) => {
 
 // Like a journal
 const likeJournal = async (req, res) => {
-    const {journalId} = req.params.id;
-    const userId = req.user.id;
-    console.log("hello" + userId)
+    const { user_id, journal_id } = req.body;
+
+    console.log("hello", user_id, journal_id)
     try {
-        const journal = await Journals.findById(journalId);
+        const journal = await Journals.findById(journal_id);
         if (!journal) {
             return res.status(404).json({ success: false, message: 'Journal not found' });
         }
 
-        if (journal.likes.includes(userId)) {
+        if (journal.likes.includes(user_id)) {
             return res.status(400).json({ success: false, message: 'Already liked' });
         }
 
-        journal.likes.push(userId);
+        journal.likes.push(user_id);
         await journal.save();
 
         res.json({ success: true, message: 'Journal liked successfully' });
@@ -338,20 +339,19 @@ const likeJournal = async (req, res) => {
 
 // Unlike a journal
 const unlikeJournal = async (req, res) => {
-    const journalId = req.params.id;
-    const userId = req.user.id;
+    const { user_id, journal_id } = req.body;
 
     try {
-        const journal = await Journals.findById(journalId);
+        const journal = await Journals.findById(journal_id);
         if (!journal) {
             return res.status(404).json({ success: false, message: 'Journal not found' });
         }
 
-        if (!journal.likes.includes(userId)) {
+        if (!journal.likes.includes(user_id)) {
             return res.status(400).json({ success: false, message: 'Not liked yet' });
         }
 
-        journal.likes = journal.likes.filter(id => id.toString() !== userId.toString());
+        journal.likes = journal.likes.filter(id => id.toString() !== user_id.toString());
         await journal.save();
 
         res.json({ success: true, message: 'Journal unliked successfully' });
@@ -363,20 +363,19 @@ const unlikeJournal = async (req, res) => {
 
 // Save a journal
 const saveJournal = async (req, res) => {
-    const journalId = req.params.id;
-    const userId = req.user.id;
+    const { user_id, journal_id } = req.body;
 
     try {
-        const journal = await Journals.findById(journalId);
+        const journal = await Journals.findById(journal_id);
         if (!journal) {
             return res.status(404).json({ success: false, message: 'Journal not found' });
         }
 
-        if (journal.savedBy.includes(userId)) {
+        if (journal.savedBy.includes(user_id)) {
             return res.status(400).json({ success: false, message: 'Already saved' });
         }
 
-        journal.savedBy.push(userId);
+        journal.savedBy.push(user_id);
         await journal.save();
 
         res.json({ success: true, message: 'Journal saved successfully' });

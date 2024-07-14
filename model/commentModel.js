@@ -7,14 +7,24 @@ const CommentSchema = new mongoose.Schema({
     ref: "users",
     required: true,
   },
-  desc: {
+  journalId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "journals",
+    required: true,
+  },
+  commentText: {
     type: String,
     required: true,
   },
+createdBy: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'User', // Reference to the User model
+  required: true,
 },
-  {
-    timestamps: true,
-  }
+createdAt: {
+  type: Date,
+}
+},
 );
 
 const Comment = mongoose.model('Comment', CommentSchema);

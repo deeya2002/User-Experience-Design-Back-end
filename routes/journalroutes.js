@@ -9,7 +9,7 @@ const { authGuard } = require('../middleware/authGuard'); // Assuming you have a
 router.post('/create', authGuard, journalController.createjournal);
 
 // Route to get all journals by a specific user
-router.get('/user/:userId',  journalController.getUserJournals);//authGuard,
+router.get('/user/:userId', journalController.getUserJournals);//authGuard,
 
 // Route to get all journals with pagination
 router.get('/getalljournal', journalController.getAllJournals);
@@ -27,16 +27,16 @@ router.delete('/me/:id', authGuard, journalController.deletejournal);
 router.post('/searchjournal', journalController.searchByjournalName);
 
 // Route to like a journal
-router.post('/:id/like', authGuard, journalController.likeJournal);
+router.post('/like', journalController.likeJournal);
 
 // Route to unlike a journal
-router.post('/:id/unlike', authGuard, journalController.unlikeJournal);
+router.post('/unlike', journalController.unlikeJournal);
 
 // Route to save a journal
-router.post('/:id/save', authGuard, journalController.saveJournal);
+router.post('/save', journalController.saveJournal);
 
 // Route to unsave a journal
-router.post('/:id/unsave', authGuard, journalController.unsaveJournal);
+router.post('/unsave', journalController.unsaveJournal);
 
 // Route to get journals saved by the current user
 router.get('/saved', authGuard, journalController.getSavedJournals);

@@ -51,6 +51,8 @@ app.use('/api/journal', require('./routes/journalroutes'));
 
 //defining journal routes
 app.use('/api/comment', require('./routes/commentRoute'));
+
+app.use('/api/feedback', require('./routes/contactroutes'));
 const PORT = process.env.PORT;
 
 app.listen(PORT, () => {
