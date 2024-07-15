@@ -17,12 +17,6 @@ const getSingleUser = async (req, res) => {
                 success: true,
                 message: "User retrieved successfully",
                 singleuser
-                // userProfile: {
-                //     id: singleuser.id,
-                //     fullName: singleuser.fullname,
-                //     userName: singleuser.userame,
-                //     email: singleuser.email,
-                // }
             });
         } else {
             return res.status(404).json({
